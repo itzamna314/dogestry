@@ -189,7 +189,17 @@ func (remote *AzureRemote) ImageMetadata(id ID) (docker.Image, error) {
 
 // return repo, tag from a file path (or S3 key)
 func (remote *AzureRemote) ParseImagePath(path string, prefix string) (repo, tag string) {
-	return "repo", "tag"
+	if remote.config.Azure.Blob.PathPresent {
+		prefix = filepath.Join(remote.config.Azure.Blob.Path, prefix)
+	}
+
+	if !strings.HasSuffix(prefix, "/") {
+		prefix += "/"
+	}
+
+	fmt.Println(path, prefix)
+
+	return ParseImagePath(path, prefix)
 }
 
 // walk the image history on the remote, starting at id
@@ -208,8 +218,25 @@ func (remote *AzureRemote) Desc() string {
 }
 
 // List images on the remote
-func (remote *AzureRemote) List() ([]Image, error) {
-	return nil, nil
+func (remote *AzureRemote) List() (images []Image, err error) {
+	keys, err := remote.repoKeys("repositories")
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, v := range keys {
+		repo, tag := remote.ParseImagePath(v.remotePath, "repositories/")
+		if err != nil {
+			log.Printf("error splitting Azure key: repositories/")
+			return images, err
+		}
+
+		image := Image{repo, tag}
+		images = append(images, image)
+	}
+
+	return images, nil
 }
 
 type azKeyDef struct {
