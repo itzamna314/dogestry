@@ -115,8 +115,6 @@ func (remote *AzureRemote) ParseTag(repo, tag string) (ID, error) {
 
 	path := remote.tagFilePath(repo, tag)
 
-	fmt.Printf("Tag path: %s\n", path)
-
 	exists, err := svc.BlobExists(remote.config.Azure.Blob.Container, path)
 	if err != nil {
 		return "", err
@@ -180,7 +178,6 @@ func (remote *AzureRemote) ImageMetadata(id ID) (docker.Image, error) {
 	}
 
 	if err := json.Unmarshal([]byte(s), &image); err != nil {
-		fmt.Println("Error unmarshalling")
 		return image, err
 	}
 
@@ -197,8 +194,6 @@ func (remote *AzureRemote) ParseImagePath(path string, prefix string) (repo, tag
 		prefix += "/"
 	}
 
-	fmt.Println(path, prefix)
-
 	return ParseImagePath(path, prefix)
 }
 
@@ -209,6 +204,12 @@ func (remote *AzureRemote) WalkImages(id ID, walker ImageWalkFn) error {
 
 // checks the config and connectivity of the remote
 func (remote *AzureRemote) Validate() error {
+	_, err := remote.azureBlobClient()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -365,8 +366,6 @@ func (remote *AzureRemote) putFile(src string, key *azKeyDef) error {
 	if blob.PathPresent {
 		dstKey = fmt.Sprintf("%s/%s", blob.Path, dstKey)
 	}
-
-	fmt.Printf("Putting file: %s\n", dstKey)
 
 	f, err := os.Open(src)
 	if err != nil {
