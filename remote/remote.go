@@ -2,6 +2,7 @@ package remote
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/dogestry/dogestry/config"
@@ -82,9 +83,11 @@ func NormaliseImageName(image string) (string, string) {
 func ResolveImageNameToId(remote Remote, image string) (ID, error) {
 	// first, try the repos
 	repoName, repoTag := NormaliseImageName(image)
+
 	if id, err := remote.ParseTag(repoName, repoTag); err != nil {
 		return "", err
 	} else if id != "" {
+		fmt.Printf("Got ID from ParseTag (%s)\n", id)
 		return id, nil
 	}
 
@@ -93,6 +96,7 @@ func ResolveImageNameToId(remote Remote, image string) (ID, error) {
 	if err != nil {
 		return "", err
 	} else if fullId != "" {
+		fmt.Printf("Got ID from ImageFullID (%s)\n", fullId)
 		return fullId, nil
 	}
 
