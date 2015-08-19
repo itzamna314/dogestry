@@ -123,11 +123,11 @@ func (remote *AzureRemote) ParseTag(repo, tag string) (ID, error) {
 	if exists {
 		// Read the ID from the blob
 		s, err := remote.getAsString(svc, remote.config.Azure.Blob.Container, path)
-		if err != nil {
+		if err != nil && err != io.EOF {
 			return "", err
 		}
 
-		return ID(string(s)), nil
+		return ID(s), nil
 	}
 
 	return "", nil
@@ -311,8 +311,12 @@ func (remote *AzureRemote) getAsString(service *storage.BlobStorageClient, conta
 
 	// Read until null terminator
 	b, err := buf.ReadBytes(0)
-	if err != nil {
+	if err != nil && err != io.EOF {
 		return "", err
+	}
+
+	if err == io.EOF {
+		return string(b), nil
 	}
 
 	// Don't return the null terminator
@@ -410,7 +414,7 @@ func (remote *AzureRemote) putAzureBlocks(svc *storage.BlobStorageClient, f *os.
 	for n, e := f.Read(arr); n > 0 && (e == nil || e == io.EOF); n, e = f.Read(arr) {
 		strId := base64.StdEncoding.EncodeToString([]byte(strconv.Itoa(id)))
 
-		putErr := svc.PutBlock(blob.Container, dst, strId, arr)
+		putErr := svc.PutBlock(blob.Container, dst, strId, arr[:n])
 
 		if putErr != nil {
 			// We could re-try the block under certain conditions
