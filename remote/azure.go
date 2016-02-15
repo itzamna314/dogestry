@@ -420,7 +420,7 @@ func (remote *AzureRemote) putAzureBlocks(svc *storage.BlobStorageClient, f *os.
 			// We could re-try the block under certain conditions
 			// Note that, because we haven't committed any blocks,
 			// we don't have to worry about partial uploads
-			return blocks, putErr
+			return nil, putErr
 		}
 
 		blocks[id-firstId] = storage.Block{strId, storage.BlockStatusUncommitted}
@@ -429,17 +429,17 @@ func (remote *AzureRemote) putAzureBlocks(svc *storage.BlobStorageClient, f *os.
 		id++
 	}
 
-	if id == 1000 {
+	if err != nil && err != io.EOF {
+		return nil, err
+	}
+
+	if nBlocks == 1 && id == 10 {
 		// Create an empty one and break
 		if createErr := svc.CreateBlockBlob(blob.Container, dst); createErr != nil {
-			return blocks, createErr
+			return nil, createErr
 		}
 
 		return blocks, nil
-	}
-
-	if err != nil && err != io.EOF {
-		return blocks, err
 	}
 
 	return blocks, nil
